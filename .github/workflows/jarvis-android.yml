@@ -1,0 +1,67 @@
+
+name: JARVIS Switch Engine - Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Clone Switch engine
+        run: |
+          git clone --depth 1 --branch v1.3.0 --recurse-submodules https://git.lemon-emu.org/lemon/Lemon-Project.git upstream
+
+      - name: Apply JARVIS branding
+        working-directory: upstream
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/android/app/build.gradle.kts')
+          s = p.read_text()
+          s = s.replace('mapOf("appNameBase" to "Lemon")', 'mapOf("appNameBase" to "JARVIS Switch Engine")')
+          s = s.replace('resValue("string", "app_name_suffixed", "Lemon")', 'resValue("string", "app_name_suffixed", "JARVIS Switch Engine")')
+          p.write_text(s)
+          PY
+
+      - name: Install Android tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools ccache
+          SDK_MANAGER="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDK_MANAGER" --licenses >/dev/null
+          "$SDK_MANAGER" "platforms;android-36" "ndk;28.2.13676358" "cmake;3.31.6"
+
+      - name: Build JARVIS Lite ARM64
+        working-directory: upstream
+        env:
+          ANDROID_NDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}/ndk/28.2.13676358
+          CCACHE: 'true'
+        run: |
+          chmod +x .ci/android/build.sh
+          .ci/android/build.sh -t lite -b Release -r
+          mkdir -p ../jarvis-artifacts
+          cp artifacts/*.apk ../jarvis-artifacts/
+
+      - name: Publish APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JARVIS-Switch-Engine-Lite-arm64
+          path: jarvis-artifacts/*.apk
+          retention-days: 14
+          if-no-files-found: error
+          
