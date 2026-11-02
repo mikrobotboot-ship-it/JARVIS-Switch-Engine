@@ -1,0 +1,81 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Comment: It is best to use this file to record copyright information about
+         generated, binary and third party files
+
+Files: dist/english_plurals/*
+       dist/icons/controller/*.png
+       dist/icons/overlay/*.png
+       dist/languages/*
+Copyright: yuzu Emulator Project
+License: GPL-2.0-or-later
+
+Files: src/android/app/src/main/res/font/bricolage_grotesque.ttf
+Copyright: 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage)
+License: OFL-1.1
+Comment: license text in dist/fonts/OFL-BricolageGrotesque.txt
+
+Files: src/android/app/src/main/res/font/dm_sans.ttf
+Copyright: 2014 The DM Sans Project Authors (https://github.com/googlefonts/dm-fonts)
+License: OFL-1.1
+Comment: license text in dist/fonts/OFL-DMSans.txt
+
+Files: externals/getopt/getopt.c
+       externals/getopt/getopt.h
+Copyright: 2011 Ludvik Jerabek
+License: LGPL-3.0-or-later
+
+Files: externals/glad/include/glad/glad.h
+       externals/glad/src/glad.c
+Copyright: The Khronos Group Inc.
+License: (WTFPL OR CC0-1.0) AND Apache-2.0
+Comment: https://github.com/Dav1dde/glad/issues/365#issuecomment-1138419515
+
+Files: externals/glad/include/KHR/khrplatform.h
+Copyright: 2008-2018 The Khronos Group Inc.
+License: MIT
+
+Files: externals/microprofile/*
+Copyright: Jonas Meyer
+License: Unlicense
+
+Files: externals/FidelityFX-FSR/*
+Copyright: 2021 Advanced Micro Devices, Inc.
+License: MIT
+
+Files: src/android/app/src/main/res/*
+Copyright: 2023 yuzu Emulator Project
+License: GPL-3.0-or-later
+
+Files: src/android/gradle/wrapper/*
+Copyright: 2023 yuzu Emulator Project
+License: GPL-3.0-or-later
+
+Files: externals/stb/*
+Copyright: Sean Barrett
+License: MIT
+
+Files: externals/gamemode/*
+Copyright: Copyright 2017-2019 Feral Interactive
+License: BSD-3-Clause
+
+Files: src/android/app/debug.keystore
+Copyright: 2023 yuzu Emulator Project
+License: GPL-3.0-or-later
+
+Files: CMakeModules/CPM.cmake
+Copyright: 2019-2023 Lars Melchior
+License: MIT
+
+Files: CMakeModules/CPMUtil.cmake
+       CMakeModules/CPM.cmake
+       CMakeModules/GetSCMRev.cmake
+       CMakeModules/DetectArchitecture.cmake
+       tools/cpm/*
+       tools/update-cpm.sh
+       tools/shellcheck.sh
+       **cpmfile.json
+Copyright: 2025 crueter <crueter@crueter.xyz>
+License: GPL-3.0-or-later
+Comment: CPM.cmake has had additional modifications from crueter to better work with CPMUtil
+         https://git.crueter.xyz/CMake/CPMUtil
+         https://git.crueter.xyz/CMake/Modules

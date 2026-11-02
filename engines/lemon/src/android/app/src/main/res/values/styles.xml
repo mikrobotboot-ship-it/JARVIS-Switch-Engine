@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-FileCopyrightText: Copyright 2026 Lemon-Project -->
+
+<resources>
+
+    <!-- Custom button styles -->
+    <style name="InGameMenuOption" parent="Widget.Material3.Button.TextButton">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:textColor">@android:color/black</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:gravity">center_vertical|left</item>
+        <item name="android:paddingLeft">32dp</item>
+        <item name="android:paddingRight">32dp</item>
+    </style>
+
+    <style name="LemonSlider" parent="Widget.Material3.Slider">
+        <item name="tickVisible">false</item>
+        <item name="labelBehavior">gone</item>
+    </style>
+
+    <!-- Blue theme dialog -->
+    <style name="LemonMaterialDialog.Blue" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/lemon_primaryContainer_blue</item>
+        <item name="colorSurface">@color/lemon_primaryContainer_blue</item>
+        <item name="colorSecondary">@color/lemon_primary_blue</item>
+        <item name="android:textColorLink">@color/lemon_primary_blue</item>
+        <item name="buttonBarPositiveButtonStyle">@style/LemonButton.Blue</item>
+        <item name="buttonBarNegativeButtonStyle">@style/LemonButton.Blue</item>
+        <item name="buttonBarNeutralButtonStyle">@style/LemonButton.Blue</item>
+    </style>
+
+    <style name="LemonButton.Blue" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/lemon_primary_blue</item>
+        <item name="rippleColor">@color/lemon_inversePrimary_blue</item>
+    </style>
+
+    <!-- Cyan theme dialog -->
+    <style name="LemonMaterialDialog.Cyan" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/lemon_primaryContainer_cyan</item>
+        <item name="colorSurface">@color/lemon_primaryContainer_cyan</item>
+        <item name="colorSecondary">@color/lemon_primary_cyan</item>
+        <item name="android:textColorLink">@color/lemon_primary_cyan</item>
+        <item name="buttonBarPositiveButtonStyle">@style/LemonButton.Cyan</item>
+        <item name="buttonBarNegativeButtonStyle">@style/LemonButton.Cyan</item>
+        <item name="buttonBarNeutralButtonStyle">@style/LemonButton.Cyan</item>
+    </style>
+
+    <style name="LemonButton.Cyan" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/lemon_primary_cyan</item>
+        <item name="rippleColor">@color/lemon_inversePrimary_cyan</item>
+    </style>
+
+    <!-- Red theme dialog -->
+    <style name="LemonMaterialDialog.Red" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/lemon_primaryContainer_red</item>
+        <item name="colorSurface">@color/lemon_primaryContainer_red</item>
+        <item name="colorSecondary">@color/lemon_primary_red</item>
+        <item name="android:textColorLink">@color/lemon_primary_red</item>
+        <item name="buttonBarPositiveButtonStyle">@style/LemonButton.Red</item>
+        <item name="buttonBarNegativeButtonStyle">@style/LemonButton.Red</item>
+        <item name="buttonBarNeutralButtonStyle">@style/LemonButton.Red</item>
+    </style>
+
+    <style name="LemonButton.Red" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/lemon_primary_red</item>
+        <item name="rippleColor">@color/lemon_inversePrimary_red</item>
+    </style>
+
+    <!-- Green theme dialog -->
+    <style name="LemonMaterialDialog.Green" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/lemon_primaryContainer_green</item>
+        <item name="colorSurface">@color/lemon_primaryContainer_green</item>
+        <item name="colorSecondary">@color/lemon_primary_green</item>
+        <item name="android:textColorLink">@color/lemon_primary_green</item>
+        <item name="buttonBarPositiveButtonStyle">@style/LemonButton.Green</item>
+        <item name="buttonBarNegativeButtonStyle">@style/LemonButton.Green</item>
+        <item name="buttonBarNeutralButtonStyle">@style/LemonButton.Green</item>
+    </style>
+
+    <style name="LemonButton.Green" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/lemon_primary_green</item>
+        <item name="rippleColor">@color/lemon_inversePrimary_green</item>
+    </style>
+
+    <!-- Yellow theme dialog -->
+    <style name="LemonMaterialDialog.Yellow" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/lemon_primaryContainer_yellow</item>
+        <item name="colorSurface">@color/lemon_primaryContainer_yellow</item>
+        <item name="colorSecondary">@color/lemon_primary_yellow</item>
+        <item name="android:textColorLink">@color/lemon_primary_yellow</item>
+        <item name="buttonBarPositiveButtonStyle">@style/LemonButton.Yellow</item>
+        <item name="buttonBarNegativeButtonStyle">@style/LemonButton.Yellow</item>
+        <item name="buttonBarNeutralButtonStyle">@style/LemonButton.Yellow</item>
+    </style>
+
+    <style name="LemonButton.Yellow" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/lemon_primary_yellow</item>
+        <item name="rippleColor">@color/lemon_inversePrimary_yellow</item>
+    </style>
+
+    <!-- Orange theme dialog -->
+    <style name="LemonMaterialDialog.Orange" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/lemon_primaryContainer_orange</item>
+        <item name="colorSurface">@color/lemon_primaryContainer_orange</item>
+        <item name="colorSecondary">@color/lemon_primary_orange</item>
+        <item name="android:textColorLink">@color/lemon_primary_orange</item>
+        <item name="buttonBarPositiveButtonStyle">@style/LemonButton.Orange</item>
+        <item name="buttonBarNegativeButtonStyle">@style/LemonButton.Orange</item>
+        <item name="buttonBarNeutralButtonStyle">@style/LemonButton.Orange</item>
+    </style>
+
+    <style name="LemonButton.Orange" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/lemon_primary_orange</item>
+        <item name="rippleColor">@color/lemon_inversePrimary_orange</item>
+    </style>
+
+    <!-- Violet theme dialog -->
+    <style name="LemonMaterialDialog.Violet" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/lemon_primaryContainer_violet</item>
+        <item name="colorSurface">@color/lemon_primaryContainer_violet</item>
+        <item name="colorSecondary">@color/lemon_primary_violet</item>
+        <item name="android:textColorLink">@color/lemon_primary_violet</item>
+        <item name="buttonBarPositiveButtonStyle">@style/LemonButton.Violet</item>
+        <item name="buttonBarNegativeButtonStyle">@style/LemonButton.Violet</item>
+        <item name="buttonBarNeutralButtonStyle">@style/LemonButton.Violet</item>
+    </style>
+
+    <style name="LemonButton.Violet" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/lemon_primary_violet</item>
+        <item name="rippleColor">@color/lemon_inversePrimary_violet</item>
+    </style>
+
+    <!-- Gray theme dialog -->
+    <style name="LemonMaterialDialog.Gray" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/lemon_primaryContainer_gray</item>
+        <item name="colorSurface">@color/lemon_primaryContainer_gray</item>
+        <item name="colorSecondary">@color/lemon_primary_gray</item>
+        <item name="android:textColorLink">@color/lemon_primary_gray</item>
+        <item name="buttonBarPositiveButtonStyle">@style/LemonButton.Gray</item>
+        <item name="buttonBarNegativeButtonStyle">@style/LemonButton.Gray</item>
+        <item name="buttonBarNeutralButtonStyle">@style/LemonButton.Gray</item>
+    </style>
+
+    <style name="LemonButton.Gray" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/lemon_primary_gray</item>
+        <item name="rippleColor">@color/lemon_inversePrimary_gray</item>
+    </style>
+
+    <!-- pink theme dialog -->
+    <style name="LemonMaterialDialog.PINK" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/lemon_primaryContainer_pink</item>
+        <item name="colorSurface">@color/lemon_primaryContainer_pink</item>
+        <item name="colorSecondary">@color/lemon_primary_pink</item>
+        <item name="android:textColorLink">@color/lemon_primary_pink</item>
+        <item name="buttonBarPositiveButtonStyle">@style/LemonButton.Pink</item>
+        <item name="buttonBarNegativeButtonStyle">@style/LemonButton.Pink</item>
+        <item name="buttonBarNeutralButtonStyle">@style/LemonButton.Pink</item>
+    </style>
+
+    <style name="LemonButton.Pink" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/lemon_primary_pink</item>
+        <item name="rippleColor">@color/lemon_inversePrimary_pink</item>
+    </style>
+
+    <style name="Widget.Lemon.TransparentTopAppBarLayout" parent="">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="elevation">0dp</item>
+        <item name="liftOnScroll">false</item>
+        <item name="statusBarForeground">@android:color/transparent</item>
+    </style>
+
+    <style name="Widget.Lemon.TransparentTopToolbar" parent="">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:elevation">0dp</item>
+        <item name="backgroundTint">@android:color/transparent</item>
+    </style>
+
+    <style name="LemonPopupMenu" parent="Widget.Material3.PopupMenu">
+        <item name="android:popupBackground">@drawable/popup_menu_background</item>
+    </style>
+
+    <style name="LemonButton.Primary" parent="Widget.Material3.Button">
+        <item name="android:textColor">@color/lemon_on_primary</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.05</item>
+        <item name="backgroundTint">@color/lemon_primary</item>
+    </style>
+
+    <style name="LemonButton.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">?attr/colorOutline</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.05</item>
+    </style>
+
+    <style name="LemonCard" parent="">
+        <item name="android:background">@drawable/theme_card_background</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+    </style>
+    <style name="LemonGameCard" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardElevation">0dp</item>
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
+    <style name="LemonCardElevated" parent="">
+        <item name="android:background">@drawable/lemon_card_elevated_selector</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:padding">16dp</item>
+    </style>
+    <!-- Synthwave Text Styles -->
+    <style name="SynthwaveText.Title" parent="TextAppearance.Material3.DisplayLarge">
+        <item name="android:textColor">@color/lemon_on_background</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">@font/lemon_title</item>
+    </style>
+    <style name="SynthwaveText.Header" parent="TextAppearance.Material3.DisplaySmall">
+        <item name="android:textColor">@color/lemon_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">@font/lemon_title</item>
+    </style>
+    <style name="SynthwaveText.Body" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">@color/lemon_on_background</item>
+        <item name="android:fontFamily">@font/lemon_body</item>
+    </style>
+    <style name="SynthwaveText.Secondary" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:fontFamily">@font/lemon_body</item>
+    </style>
+    <style name="SynthwaveText.Accent" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">@font/lemon_body</item>
+    </style>
+    <!-- Shape appearance for carousel images -->
+    <style name="ShapeAppearance.Lemon.CarouselImage" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">8dp</item>
+        <item name="cornerSizeTopRight">8dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+</resources>

@@ -1,0 +1,578 @@
+// SPDX-FileCopyrightText: Copyright 2026 Lemon-Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+// SPDX-FileCopyrightText: 2023 yuzu Emulator Project
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+package dev.lemon.lemon_emu.features.settings.ui
+
+import dev.lemon.lemon_emu.ui.modern.UiMode
+import dev.lemon.lemon_emu.ui.modern.SettingsActions
+import dev.lemon.lemon_emu.ui.modern.ModernSupportedTypes
+import dev.lemon.lemon_emu.ui.modern.ModernSettingsList
+import dev.lemon.lemon_emu.SettingsNavigationDirections
+import com.google.android.material.appbar.AppBarLayout
+import androidx.recyclerview.widget.RecyclerView
+import androidx.navigation.NavOptions
+import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.runtime.mutableIntStateOf
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.os.Build
+import android.os.Bundle
+import android.os.Environment
+import android.provider.Settings as AndroidSettings
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.navigation.findNavController
+import androidx.navigation.fragment.navArgs
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.transition.MaterialSharedAxis
+import dev.lemon.lemon_emu.R
+import dev.lemon.lemon_emu.databinding.FragmentSettingsBinding
+import dev.lemon.lemon_emu.features.input.NativeInput
+import dev.lemon.lemon_emu.features.settings.SettingsSearchIndex
+import dev.lemon.lemon_emu.features.settings.model.Settings
+import dev.lemon.lemon_emu.features.settings.model.view.PathSetting
+import dev.lemon.lemon_emu.fragments.MessageDialogFragment
+import dev.lemon.lemon_emu.utils.PathUtil
+import dev.lemon.lemon_emu.utils.ViewUtils.updateMargins
+import dev.lemon.lemon_emu.utils.*
+import java.io.File
+import androidx.core.net.toUri
+
+class SettingsFragment : Fragment() {
+    private lateinit var presenter: SettingsFragmentPresenter
+    private var settingsAdapter: SettingsAdapter? = null
+
+    private var _binding: FragmentSettingsBinding? = null
+    private val binding get() = _binding!!
+
+    private val args by navArgs<SettingsFragmentArgs>()
+
+    private val settingsViewModel: SettingsViewModel by activityViewModels()
+
+    private val requestAllFilesPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (hasAllFilesPermission()) {
+            showPathPickerDialog()
+        } else {
+            Toast.makeText(
+                requireContext(),
+                R.string.all_files_permission_required,
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enterTransition = MaterialSharedAxis(MaterialSharedAxis.X, true)
+        returnTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
+        reenterTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
+        exitTransition = MaterialSharedAxis(MaterialSharedAxis.X, true)
+
+        val playerIndex = getPlayerIndex()
+        if (playerIndex != -1) {
+            NativeInput.loadInputProfiles()
+            NativeInput.reloadInputDevices()
+        }
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentSettingsBinding.inflate(layoutInflater)
+        return binding.root
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        settingsAdapter = SettingsAdapter(this, requireContext())
+        presenter = SettingsFragmentPresenter(
+            settingsViewModel,
+            settingsAdapter!!,
+            args.menuTag,
+            activity
+        )
+
+        val toolbarTitle = resolveToolbarTitle()
+        configureToolbar(toolbarTitle)
+
+        binding.listSettings.apply {
+            adapter = settingsAdapter
+            layoutManager = LinearLayoutManager(requireContext())
+        }
+
+        binding.toolbarSettings.setNavigationOnClickListener {
+            settingsViewModel.setShouldNavigateBack(true)
+        }
+
+        settingsViewModel.shouldReloadSettingsList.collect(
+            viewLifecycleOwner,
+            resetState = { settingsViewModel.setShouldReloadSettingsList(false) }
+        ) { if (it) presenter.loadSettingsList() }
+        settingsViewModel.adapterItemChanged.collect(
+            viewLifecycleOwner,
+            resetState = { settingsViewModel.setAdapterItemChanged(-1) }
+        ) { if (it != -1) settingsAdapter?.notifyItemChanged(it) }
+        settingsViewModel.datasetChanged.collect(
+            viewLifecycleOwner,
+            resetState = { settingsViewModel.setDatasetChanged(false) }
+        ) { if (it) settingsAdapter?.notifyDataSetChanged() }
+        settingsViewModel.reloadListAndNotifyDataset.collect(
+            viewLifecycleOwner,
+            resetState = { settingsViewModel.setReloadListAndNotifyDataset(false) }
+        ) { if (it) presenter.loadSettingsList(true) }
+        settingsViewModel.shouldShowResetInputDialog.collect(
+            viewLifecycleOwner,
+            resetState = { settingsViewModel.setShouldShowResetInputDialog(false) }
+        ) {
+            if (it) {
+                MessageDialogFragment.newInstance(
+                    activity = requireActivity(),
+                    titleId = R.string.reset_mapping,
+                    descriptionId = R.string.reset_mapping_description,
+                    positiveAction = {
+                        NativeInput.resetControllerMappings(getPlayerIndex())
+                        settingsViewModel.setReloadListAndNotifyDataset(true)
+                    },
+                    negativeAction = {}
+                ).show(parentFragmentManager, MessageDialogFragment.TAG)
+            }
+        }
+
+        settingsViewModel.shouldShowPathPicker.collect(
+            viewLifecycleOwner,
+            resetState = { settingsViewModel.setShouldShowPathPicker(false) }
+        ) {
+            if (it) {
+                handlePathPickerRequest()
+            }
+        }
+
+        settingsViewModel.shouldShowPathResetDialog.collect(
+            viewLifecycleOwner,
+            resetState = { settingsViewModel.setShouldShowPathResetDialog(false) }
+        ) {
+            if (it) {
+                showPathResetDialog()
+            }
+        }
+
+        if (args.menuTag == Settings.MenuTag.SECTION_ROOT) {
+            binding.toolbarSettings.inflateMenu(R.menu.menu_settings)
+            binding.toolbarSettings.setOnMenuItemClickListener {
+                when (it.itemId) {
+                    R.id.action_search -> {
+                        view.findNavController()
+                            .navigate(R.id.action_settingsFragment_to_settingsSearchFragment)
+                        true
+                    }
+
+                    else -> false
+                }
+            }
+        }
+
+        // A search result opens its section directly; anything else drops a stale target.
+        if (SettingsSearchIndex.pendingTarget?.first != args.menuTag) {
+            SettingsSearchIndex.pendingTarget = null
+        }
+
+        presenter.onViewCreated()
+        setInsets()
+        if (UiMode.isModern(requireContext())) {
+            setupModernList()
+        }
+        settingsAdapter?.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
+            override fun onChanged() = showSearchTarget()
+            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) = showSearchTarget()
+        })
+        showSearchTarget()
+    }
+
+    /** Row of a search result to scroll to and flash in the redesigned list, or -1. */
+    private val highlight = mutableIntStateOf(-1)
+
+    /** If a search result opened this section, bring its row into view and flash it, once. */
+    private fun showSearchTarget() {
+        val adapter = settingsAdapter ?: return
+        val (tag, anchor) = SettingsSearchIndex.pendingTarget ?: return
+        if (tag != args.menuTag || adapter.currentList.isEmpty()) {
+            return
+        }
+        SettingsSearchIndex.pendingTarget = null
+        // Same identity the index gives each row: its setting key, or its title.
+        val index = adapter.currentList.indexOfFirst { it.setting.key.ifEmpty { it.title } == anchor }
+        if (anchor.isEmpty() || index < 0) {
+            return
+        }
+        if (binding.listSettings.visibility == View.VISIBLE) {
+            val list = binding.listSettings
+            (list.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(index, 0)
+            list.post {
+                // The row's own ripple, pressed for a moment, marks it.
+                val row = list.findViewHolderForAdapterPosition(index)?.itemView ?: return@post
+                row.isPressed = true
+                row.postDelayed({ row.isPressed = false }, 700)
+            }
+        } else {
+            highlight.intValue = index
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // The Nextendo sign-in finishes in the browser; show the new state on the way back.
+        if (args.menuTag == Settings.MenuTag.SECTION_NEXTENDO ||
+            args.menuTag == Settings.MenuTag.SECTION_ONLINE
+        ) {
+            presenter.loadSettingsList(true)
+        }
+    }
+
+    /**
+     * The redesigned list. It draws what the classic adapter holds (same items, same handlers, same
+     * dialogs) and falls back to the classic list for sections with row types it cannot draw yet.
+     */
+    private fun setupModernList() {
+        val adapter = settingsAdapter ?: return
+        val tick = mutableIntStateOf(0)
+        val rail = presenter.rootSections()
+        val actions = SettingsActions(
+            onSwitch = { item, checked, position -> adapter.onBooleanClick(item, checked, position) },
+            onSingleChoice = { item, position -> adapter.onSingleChoiceClick(item, position) },
+            onStringSingleChoice = { item, position -> adapter.onStringSingleChoiceClick(item, position) },
+            onIntSingleChoice = { item, position -> adapter.onIntSingleChoiceClick(item, position) },
+            onSlider = { item, position -> adapter.onSliderClick(item, position) },
+            onSpinBox = { item, position -> adapter.onSpinBoxClick(item, position) },
+            onDateTime = { item, position -> adapter.onDateTimeClick(item, position) },
+            onStringInput = { item, position -> adapter.onStringInputClick(item, position) },
+            onPath = { item, position -> adapter.onPathClick(item, position) },
+            onSubmenu = { item -> adapter.onSubmenuClick(item) },
+            onLaunchable = { item -> adapter.onLaunchableClick(item) },
+            onInput = { item, position -> adapter.onInputClick(item, position) },
+            onInputOptions = { anchor, item, position -> adapter.onInputOptionsClick(anchor, item, position) },
+            onInputProfile = { item, position -> adapter.onInputProfileClick(item, position) },
+            onGpuUnswizzle = { item, position -> adapter.onGpuUnswizzleClick(item, position) },
+            onClear = { item, position -> adapter.onClearClick(item, position) },
+            onLongClick = { item, position -> adapter.onLongClick(item, position) },
+            onRailSection = { section ->
+                val nav = requireView().findNavController()
+                val currentId = nav.currentDestination?.id
+                if (currentId != null) {
+                    val options = NavOptions.Builder().setPopUpTo(currentId, true).build()
+                    if (section.menuKey == Settings.MenuTag.SECTION_FREEDRENO) {
+                        nav.navigate(R.id.action_settingsFragment_to_freedrenoSettingsFragment, null, options)
+                    } else {
+                        nav.navigate(
+                            SettingsNavigationDirections.actionGlobalSettingsFragment(section.menuKey, null),
+                            options
+                        )
+                    }
+                }
+            }
+        )
+
+        val composeView = ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                val t = tick.intValue
+                ModernSettingsList(
+                    items = adapter.currentList,
+                    tick = t,
+                    isRoot = args.menuTag == Settings.MenuTag.SECTION_ROOT,
+                    currentSection = args.menuTag.name,
+                    railSections = rail,
+                    actions = actions,
+                    highlight = highlight.intValue,
+                    onHighlightShown = { highlight.intValue = -1 }
+                )
+            }
+        }
+        val params = CoordinatorLayout.LayoutParams(
+            CoordinatorLayout.LayoutParams.MATCH_PARENT,
+            CoordinatorLayout.LayoutParams.MATCH_PARENT
+        ).apply { behavior = AppBarLayout.ScrollingViewBehavior() }
+        (binding.root as ViewGroup).addView(composeView, params)
+
+        fun refresh() {
+            val drawable = adapter.currentList.all { it.type in ModernSupportedTypes }
+            composeView.visibility = if (drawable) View.VISIBLE else View.GONE
+            binding.listSettings.visibility = if (drawable) View.GONE else View.VISIBLE
+            tick.intValue++
+        }
+        adapter.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
+            override fun onChanged() = refresh()
+            override fun onItemRangeChanged(positionStart: Int, itemCount: Int) = refresh()
+            override fun onItemRangeChanged(positionStart: Int, itemCount: Int, payload: Any?) = refresh()
+            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) = refresh()
+            override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) = refresh()
+            override fun onItemRangeMoved(fromPosition: Int, toPosition: Int, itemCount: Int) = refresh()
+        })
+        refresh()
+    }
+private fun getPlayerIndex(): Int =
+        when (args.menuTag) {
+            Settings.MenuTag.SECTION_INPUT_PLAYER_ONE -> 0
+            Settings.MenuTag.SECTION_INPUT_PLAYER_TWO -> 1
+            Settings.MenuTag.SECTION_INPUT_PLAYER_THREE -> 2
+            Settings.MenuTag.SECTION_INPUT_PLAYER_FOUR -> 3
+            Settings.MenuTag.SECTION_INPUT_PLAYER_FIVE -> 4
+            Settings.MenuTag.SECTION_INPUT_PLAYER_SIX -> 5
+            Settings.MenuTag.SECTION_INPUT_PLAYER_SEVEN -> 6
+            Settings.MenuTag.SECTION_INPUT_PLAYER_EIGHT -> 7
+            else -> -1
+        }
+
+    private fun resolveToolbarTitle(): String {
+        if (args.menuTag == Settings.MenuTag.SECTION_ROOT && args.game != null) {
+            return args.game!!.title
+        }
+        return when (args.menuTag) {
+            Settings.MenuTag.SECTION_INPUT_PLAYER_ONE -> Settings.getPlayerString(1)
+            Settings.MenuTag.SECTION_INPUT_PLAYER_TWO -> Settings.getPlayerString(2)
+            Settings.MenuTag.SECTION_INPUT_PLAYER_THREE -> Settings.getPlayerString(3)
+            Settings.MenuTag.SECTION_INPUT_PLAYER_FOUR -> Settings.getPlayerString(4)
+            Settings.MenuTag.SECTION_INPUT_PLAYER_FIVE -> Settings.getPlayerString(5)
+            Settings.MenuTag.SECTION_INPUT_PLAYER_SIX -> Settings.getPlayerString(6)
+            Settings.MenuTag.SECTION_INPUT_PLAYER_SEVEN -> Settings.getPlayerString(7)
+            Settings.MenuTag.SECTION_INPUT_PLAYER_EIGHT -> Settings.getPlayerString(8)
+            else -> getString(args.menuTag.titleId)
+        }
+    }
+
+    private fun configureToolbar(title: String) {
+        binding.toolbarSettings.title = title
+    }
+
+    private fun setInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(
+            binding.root
+        ) { _: View, windowInsets: WindowInsetsCompat ->
+            val barInsets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val cutoutInsets = windowInsets.getInsets(WindowInsetsCompat.Type.displayCutout())
+
+            val leftInsets = barInsets.left + cutoutInsets.left
+            val rightInsets = barInsets.right + cutoutInsets.right
+
+            binding.listSettings.updateMargins(left = leftInsets, right = rightInsets)
+            binding.listSettings.updatePadding(bottom = barInsets.bottom)
+
+            binding.appbarSettings.updateMargins(left = leftInsets, right = rightInsets)
+            windowInsets
+        }
+    }
+
+    private fun hasAllFilesPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            true
+        }
+    }
+
+    private fun requestAllFilesPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val intent = Intent(AndroidSettings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            intent.data = "package:${requireContext().packageName}".toUri()
+            requestAllFilesPermissionLauncher.launch(intent)
+        }
+    }
+
+    private fun handlePathPickerRequest() {
+        if (!hasAllFilesPermission()) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.all_files_permission_required)
+                .setMessage(R.string.all_files_permission_required)
+                .setPositiveButton(R.string.grant_permission) { _, _ ->
+                    requestAllFilesPermission()
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+            return
+        }
+        showPathPickerDialog()
+    }
+
+    private fun showPathPickerDialog() {
+        directoryPickerLauncher.launch(null)
+    }
+
+    private val directoryPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            val pathSetting = settingsViewModel.clickedItem as? PathSetting ?: return@registerForActivityResult
+            val rawPath = PathUtil.getPathFromUri(uri)
+            if (rawPath != null) {
+                handleSelectedPath(pathSetting, rawPath)
+            } else {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.invalid_directory,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun handleSelectedPath(pathSetting: PathSetting, path: String) {
+        if (!PathUtil.validateDirectory(path)) {
+            Toast.makeText(
+                requireContext(),
+                R.string.invalid_directory,
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        if (pathSetting.pathType == PathSetting.PathType.SAVE_DATA) {
+            val oldPath = pathSetting.getCurrentPath()
+            if (oldPath != path) {
+                promptSaveMigration(pathSetting, oldPath, path)
+            }
+        } else {
+            setPathAndNotify(pathSetting, path)
+        }
+    }
+
+    private fun promptSaveMigration(pathSetting: PathSetting, fromPath: String, toPath: String) {
+        val sourceSavePath = "$fromPath/user/save"
+        val destSavePath = "$toPath/user/save"
+        val sourceSaveDir = File(sourceSavePath)
+        val destSaveDir = File(destSavePath)
+
+        val sourceHasSaves = PathUtil.hasContent(sourceSavePath)
+        val destHasSaves = PathUtil.hasContent(destSavePath)
+
+        if (!sourceHasSaves) {
+            setPathAndNotify(pathSetting, toPath)
+            return
+        }
+
+        if (destHasSaves) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.migrate_save_data)
+                .setMessage(R.string.destination_has_saves)
+                .setPositiveButton(R.string.confirm) { _, _ ->
+                    migrateSaveData(pathSetting, sourceSaveDir, destSaveDir, toPath)
+                }
+                .setNegativeButton(R.string.skip_migration) { _, _ ->
+                    setPathAndNotify(pathSetting, toPath)
+                }
+                .setNeutralButton(R.string.cancel, null)
+                .show()
+        } else {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.migrate_save_data)
+                .setMessage(R.string.migrate_save_data_question)
+                .setPositiveButton(R.string.confirm) { _, _ ->
+                    migrateSaveData(pathSetting, sourceSaveDir, destSaveDir, toPath)
+                }
+                .setNegativeButton(R.string.skip_migration) { _, _ ->
+                    setPathAndNotify(pathSetting, toPath)
+                }
+                .setNeutralButton(R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun migrateSaveData(
+        pathSetting: PathSetting,
+        sourceDir: File,
+        destDir: File,
+        newPath: String
+    ) {
+        Thread {
+            val success = PathUtil.copyDirectory(sourceDir, destDir, overwrite = true)
+
+            requireActivity().runOnUiThread {
+                if (success) {
+                    setPathAndNotify(pathSetting, newPath)
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.save_migration_complete,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.save_migration_failed,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }.start()
+    }
+
+    private fun setPathAndNotify(pathSetting: PathSetting, path: String) {
+        pathSetting.setPath(path)
+        NativeConfig.saveGlobalConfig()
+
+        NativeConfig.reloadGlobalConfig()
+
+        val messageResId = if (pathSetting.pathType == PathSetting.PathType.SAVE_DATA) {
+            R.string.save_directory_set
+        } else {
+            R.string.path_set
+        }
+
+        Toast.makeText(
+            requireContext(),
+            messageResId,
+            Toast.LENGTH_SHORT
+        ).show()
+
+        val position = settingsViewModel.pathSettingPosition.value
+        if (position >= 0) {
+            settingsAdapter?.notifyItemChanged(position)
+        }
+    }
+
+    private fun showPathResetDialog() {
+        val pathSetting = settingsViewModel.clickedItem as? PathSetting ?: return
+
+        if (pathSetting.isUsingDefaultPath()) {
+            return
+        }
+
+        val currentPath = pathSetting.getCurrentPath()
+        val defaultPath = pathSetting.getDefaultPath()
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.reset_to_nand)
+            .setMessage(R.string.migrate_save_data_question)
+            .setPositiveButton(R.string.confirm) { _, _ ->
+                val sourceSaveDir = File(currentPath, "user/save")
+                val destSaveDir = File(defaultPath, "user/save")
+
+                if (sourceSaveDir.exists() && sourceSaveDir.listFiles()?.isNotEmpty() == true) {
+                    migrateSaveData(pathSetting, sourceSaveDir, destSaveDir, defaultPath)
+                } else {
+                    setPathAndNotify(pathSetting, defaultPath)
+                }
+            }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                // just dismiss
+            }
+            .show()
+    }
+}

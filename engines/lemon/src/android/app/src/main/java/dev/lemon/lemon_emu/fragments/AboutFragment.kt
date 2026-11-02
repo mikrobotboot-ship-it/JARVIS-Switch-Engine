@@ -1,0 +1,199 @@
+// SPDX-FileCopyrightText: Copyright 2026 Lemon-Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+package dev.lemon.lemon_emu.fragments
+
+import dev.lemon.lemon_emu.ui.modern.UiMode
+import dev.lemon.lemon_emu.ui.modern.ModernAbout
+import dev.lemon.lemon_emu.ui.modern.AboutActions
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.ComposeView
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.navigation.findNavController
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.transition.MaterialSharedAxis
+import dev.lemon.lemon_emu.HomeNavigationDirections
+import dev.lemon.lemon_emu.R
+import dev.lemon.lemon_emu.databinding.FragmentAboutBinding
+import dev.lemon.lemon_emu.features.settings.ui.SettingsSubscreen
+import dev.lemon.lemon_emu.model.HomeViewModel
+import dev.lemon.lemon_emu.utils.ViewUtils.updateMargins
+import dev.lemon.lemon_emu.NativeLibrary
+
+class AboutFragment : Fragment() {
+    private var _binding: FragmentAboutBinding? = null
+    private val binding get() = _binding!!
+
+    private val homeViewModel: HomeViewModel by activityViewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enterTransition = MaterialSharedAxis(MaterialSharedAxis.X, true)
+        returnTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
+        reenterTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentAboutBinding.inflate(layoutInflater)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        homeViewModel.setStatusBarShadeVisibility(visible = false)
+        binding.toolbarAbout.setNavigationOnClickListener {
+            requireActivity().onBackPressedDispatcher.onBackPressed()
+        }
+
+        binding.imageLogo.setOnLongClickListener {
+            Toast.makeText(
+                requireContext(),
+                R.string.gaia_is_not_real,
+                Toast.LENGTH_SHORT
+            ).show()
+            true
+        }
+
+        binding.buttonContributors.setOnClickListener {
+            openLink(
+                getString(R.string.contributors_link)
+            )
+        }
+        binding.buttonLicenses.setOnClickListener {
+            val action = HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                SettingsSubscreen.LICENSES,
+                null
+            )
+            binding.root.findNavController().navigate(action)
+        }
+
+        val buildName = getString(R.string.app_name_suffixed)
+        val buildVersion = NativeLibrary.getBuildVersion()
+        val fullVersionText = "$buildName ($buildVersion)"
+
+        binding.textVersionName.text = fullVersionText
+        binding.buttonVersionName.setOnClickListener {
+            val clipBoard =
+                requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText(getString(R.string.build), fullVersionText)
+            clipBoard.setPrimaryClip(clip)
+
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.copied_to_clipboard,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+        binding.buttonUpdate.setOnClickListener { checkForUpdatesNow() }
+        binding.buttonWebsite.setOnClickListener { openLink(getString(R.string.website_link)) }
+        binding.buttonSource.setOnClickListener { openLink(getString(R.string.source_link)) }
+        binding.buttonGuide.setOnClickListener { openLink(getString(R.string.guide_link)) }
+        binding.buttonFaq.setOnClickListener { openLink(getString(R.string.faq_link)) }
+        binding.buttonGithub.setOnClickListener { openLink(getString(R.string.github_link)) }
+        binding.buttonDiscord.setOnClickListener { openLink(getString(R.string.discord_link)) }
+        binding.buttonBuymeacoffee.setOnClickListener {
+            openLink(getString(R.string.buymeacoffee_link))
+        }
+        binding.buttonKofi.setOnClickListener {
+            openLink(getString(R.string.kofi_link))
+        }
+
+        if (UiMode.isModern(requireContext())) {
+            setupModernAbout()
+        }
+        setInsets()
+    }
+
+    // The redesigned screen, drawn over the classic one and reusing its handlers.
+    private fun setupModernAbout() {
+        val buildName = getString(R.string.app_name_suffixed)
+        val versionText = "$buildName (${NativeLibrary.getBuildVersion()})"
+        val actions = AboutActions(
+            onBack = { requireActivity().onBackPressedDispatcher.onBackPressed() },
+            onCopyVersion = { binding.buttonVersionName.performClick() },
+            onLicenses = { binding.buttonLicenses.performClick() },
+            onCheckUpdates = { checkForUpdatesNow() },
+            onLink = { linkRes -> openLink(getString(linkRes)) }
+        )
+        val composeView = ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent { ModernAbout(versionText, actions) }
+        }
+        val root = binding.root as ViewGroup
+        for (i in 0 until root.childCount) {
+            root.getChildAt(i).visibility = View.GONE
+        }
+        root.addView(
+            composeView,
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        )
+    }
+
+    /** The same check that runs at launch, on demand. It always asks, whatever the launch-time setting is. */
+    private fun checkForUpdatesNow() {
+        val activity = requireActivity()
+        Toast.makeText(activity, R.string.update_checking, Toast.LENGTH_SHORT).show()
+        Thread {
+            val release = if (NativeLibrary.isUpdateCheckerEnabled()) NativeLibrary.checkForUpdate() else null
+            activity.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                if (release == null) {
+                    Toast.makeText(activity, R.string.update_none, Toast.LENGTH_LONG).show()
+                } else {
+                    MaterialAlertDialogBuilder(activity)
+                        .setTitle(R.string.update_available)
+                        .setMessage(getString(R.string.update_available_description, release.title))
+                        .setPositiveButton(R.string.update_open_page) { _, _ -> openLink(release.url) }
+                        .setNegativeButton(R.string.cancel, null)
+                        .show()
+                }
+            }
+        }.start()
+    }
+
+    private fun openLink(link: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+        startActivity(intent)
+    }
+
+    private fun setInsets() =
+        ViewCompat.setOnApplyWindowInsetsListener(
+            binding.root
+        ) { _: View, windowInsets: WindowInsetsCompat ->
+            val barInsets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val cutoutInsets = windowInsets.getInsets(WindowInsetsCompat.Type.displayCutout())
+
+            val leftInsets = barInsets.left + cutoutInsets.left
+            val rightInsets = barInsets.right + cutoutInsets.right
+
+            binding.toolbarAbout.updateMargins(left = leftInsets, right = rightInsets)
+            binding.scrollAbout.updateMargins(left = leftInsets, right = rightInsets)
+
+            binding.contentAbout.updatePadding(bottom = barInsets.bottom)
+
+            windowInsets
+        }
+}
